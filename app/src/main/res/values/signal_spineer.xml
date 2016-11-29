@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="testing_signals">
+    <item>1kHz sinewave</item>
+    <item>Sine Log Sweep</item>
+    <item>Pink Noise</item>
+    <item>MLS</item>
+</string-array>
+</resources>
