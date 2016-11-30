@@ -325,6 +325,49 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
+    void generateWhiteNoise() {
+        Log.i(TAG,"Generating white noise...");
+        // Generate signal
+        double Max = amplitude;
+        double Min = -amplitude;
+        for (int i = 0; i < numSamples; i++) {
+            sample[i] =(Math.random()*(Max-Min))-1.;
+        }
+    }
+
+    void generateMLS(int N){
+        Log.i(TAG, "Generating MLS signal...");
+        // Initialize abuff array to ones
+        // Generate pseudo random signal
+        int nsamp = (int)Math.pow(2,N);
+        int taps=4, tap1=1, tap2=2, tap3=4, tap4=15;
+        if (N!=16){
+            Log.e(TAG, "At this moment MLS signal is only defined for 16 bits, soon other tap values will be included.");
+        }
+        int[] abuff = new int[N];
+        // fill with ones
+        for (int i = 0; i<abuff.length;i++){
+            abuff[i] = 1;
+        }
+        for(int i = (int) Math.pow(2.,N); i>1; i--){
+            // feedback bit
+            int xorbit = abuff[tap1] ^ abuff[tap2];
+            // second logic level
+            if (taps==4){
+                int xorbit2 = abuff[tap3] ^ abuff[tap4]; //4 taps = 3 xor gates & 2 levels of logic
+                xorbit = xorbit ^ xorbit2;        //second logic level
+            }
+            // Circular buffer
+            for (int j= N-1; j>0; j--){
+                int temp = abuff[j-1];
+                abuff[j] = temp;
+            }
+            abuff[0] = xorbit;
+            // fill sample value
+            sample[i] = (double)((-2 * xorbit) + 1);
+        }
+    }
+
     void byteConversion(){
         // Convert to 16 bit pcm sound array
         // Assumes the sample buffer is normalised.
@@ -345,15 +388,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 break;
             }
             case 1:{
-                genSweepTone(200, 20000);
+                genSweepTone(20, 20000);
                 break;
             }
             case 2:{
-                //genPinkNoise
+                generateWhiteNoise();
                 break;
             }
             case 3:{
-                //genMLS
+                generateMLS(16);
                 break;
             }
         }
