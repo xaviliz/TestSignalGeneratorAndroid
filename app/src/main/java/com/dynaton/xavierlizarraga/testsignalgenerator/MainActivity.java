@@ -1,8 +1,12 @@
 package com.dynaton.xavierlizarraga.testsignalgenerator;
 
 import android.animation.ObjectAnimator;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioFormat;
@@ -15,12 +19,16 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -54,6 +62,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private AudioTrack mAudioTrack;
     double amplitude = 1.0;
     double twoPi = 2.*Math.PI;
+    int f1 = 20;
+    int f2 = 20000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,13 +153,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // Display current volume level in TextView
         final TextView tv_rec = (TextView) findViewById(R.id.text_record);
 
-        // Generate testing signals, they can be generated on onCreate or also when user change spinner
-        //genTone();
-        //writeSynthesizedDataToFile();
-
         // Instantiate Broadcast Receiver to check if headphones output is plugged
         myReceiver = new MusicIntentReceiver();
-
 
         // TODO - Add circular progress bar - check Threading AsyncTask in examples
         /* Progress Bar while signals are sinthesized
@@ -158,11 +163,45 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         animation.setDuration (5000); //in milliseconds
         animation.setInterpolator (new DecelerateInterpolator());
         animation.start ();*/
-
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
 
-    // Basic idea to generate a sinewave
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.file:
+                //newGame();
+                setSignals();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void setSignals() {
+        final AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create(); //Read Update
+        alertDialog.setTitle("Setting Signals");
+        alertDialog.setMessage("Here some sliders should be added to control the testing signal generator.");
+        final SeekBar seek = new SeekBar(this);
+        seek.setMax(255);
+        seek.setKeyProgressIncrement(1);
+
+        alertDialog.setButton("Continue..", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                // here you can add functions
+            }
+        });
+        alertDialog.show();
+    }
+    /*
+    // Basic approach to generate a sinewave
     private void playSound(double frequency, int duration) {
         // AudioTrack definition
         int mBufferSize = AudioTrack.getMinBufferSize(44100,
@@ -173,7 +212,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT,
                 mBufferSize, AudioTrack.MODE_STREAM);
 
-        // Sine wave
+        // Sine wave definition
         double[] mSound = new double[4410];
         short[] mBuffer = new short[duration];
         for (int i = 0; i < mSound.length; i++) {
@@ -188,7 +227,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mAudioTrack.stop();
         mAudioTrack.release();
 
-    }
+    }*/
 
     // Toggle playback
     private void onPlayPressed(boolean shouldStartPlaying) {
@@ -201,7 +240,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     // Playback audio using MediaPlayer
     private void startPlaying() {
-
         if(mFileName != null) {
             mPlayer = new MediaPlayer();
             try {
@@ -228,43 +266,24 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     // Listen for Audio Focus changes
     // To avoid every music app playing at the same time, Android uses audio focus to moderate audio playback.
     AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-
         @Override
         public void onAudioFocusChange(int focusChange) {
-
             if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
                 mAudioManager.abandonAudioFocus(afChangeListener);
-
                 // Stop playback, if necessary
                 if (null != mPlayer && mPlayer.isPlaying())
                     stopPlaying();
             }
-
         }
-
     };
 
     public void onItemSelected(AdapterView<?> parent, View view,
                                int pos, long id) {
-        // An item was selected. You can retrieve the selected item using
-        // parent.getItemAtPosition(pos)
-
-        // TODO - Change to testing signal depending on parent getItemAtPosition(pos) with mFileName, you can define names for each testing signal
-        // and too reproduce them you only have to change mFileName
-        /*if (pos == 0) {
-            genTone();
-            writeSynthesizedDataToFile();
-            mPlayButton.setEnabled(true);
-        }
-        else if (pos==1) {
-            mPlayButton.setEnabled(false);
-        }*/
         // Generating Testing signals depending on spinner choice
         genSignals(pos);
         byteConversion();
         writeSynthesizedDataToFile();
         mPlayButton.setEnabled(true);
-
     }
 
     public void onNothingSelected(AdapterView<?> parent) {
@@ -349,7 +368,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         for (int i = 0; i<abuff.length;i++){
             abuff[i] = 1;
         }
-        for(int i = (int) Math.pow(2.,N); i>1; i--){
+        for(int i = nsamp; i>1; i--){
             // feedback bit
             int xorbit = abuff[tap1] ^ abuff[tap2];
             // second logic level
@@ -364,7 +383,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
             abuff[0] = xorbit;
             // fill sample value
-            sample[i] = (double)((-2 * xorbit) + 1);
+            sample[i] = (-2. * xorbit) + 1.;
         }
     }
 
@@ -388,7 +407,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 break;
             }
             case 1:{
-                genSweepTone(20, 20000);
+                genSweepTone(f1, f2);
                 break;
             }
             case 2:{

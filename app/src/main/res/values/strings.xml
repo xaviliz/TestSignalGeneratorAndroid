@@ -5,4 +5,5 @@
     <string name="text_volume">Play sound</string>
     <string name="text_record">Record sound</string>
     <string name="text_selector">Select a kind of signal</string>
+    <string name="file">Setting signals</string>
 </resources>
