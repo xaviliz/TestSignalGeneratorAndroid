@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private ToggleButton mPlayButton, mRecordButton;
     private MusicIntentReceiver myReceiver;
     private ProgressBar mProgressBar;
-    private final int duration = 40; // seconds
+    private final int duration = 20; // seconds
     private final int sampleRate = 44100;
     private final int numSamples = duration * sampleRate;
     private final double sample[] = new double[numSamples];
@@ -52,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private final byte generatedSnd[] = new byte[2 * numSamples];
     //private final byte data[] = new byte[2 * numSamples];
     private AudioTrack mAudioTrack;
+    double amplitude = 1.0;
+    double twoPi = 2.*Math.PI;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,9 +143,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // Display current volume level in TextView
         final TextView tv_rec = (TextView) findViewById(R.id.text_record);
 
-        // Generate testing signals, they can be generated on the intro activity
-        genTone();
-        writeSynthesizedDataToFile();
+        // Generate testing signals, they can be generated on onCreate or also when user change spinner
+        //genTone();
+        //writeSynthesizedDataToFile();
 
         // Instantiate Broadcast Receiver to check if headphones output is plugged
         myReceiver = new MusicIntentReceiver();
@@ -190,13 +192,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     // Toggle playback
     private void onPlayPressed(boolean shouldStartPlaying) {
-
         if (shouldStartPlaying) {
             startPlaying();
         } else {
             stopPlaying();
         }
-
     }
 
     // Playback audio using MediaPlayer
@@ -248,10 +248,22 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                                int pos, long id) {
         // An item was selected. You can retrieve the selected item using
         // parent.getItemAtPosition(pos)
-        mPlayButton.setEnabled(true);
 
         // TODO - Change to testing signal depending on parent getItemAtPosition(pos) with mFileName, you can define names for each testing signal
         // and too reproduce them you only have to change mFileName
+        /*if (pos == 0) {
+            genTone();
+            writeSynthesizedDataToFile();
+            mPlayButton.setEnabled(true);
+        }
+        else if (pos==1) {
+            mPlayButton.setEnabled(false);
+        }*/
+        // Generating Testing signals depending on spinner choice
+        genSignals(pos);
+        byteConversion();
+        writeSynthesizedDataToFile();
+        mPlayButton.setEnabled(true);
 
     }
 
@@ -282,28 +294,70 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     void genTone(){
         Log.i(TAG, "genTone is called");
-        // Use a new tread as this can take a while
-        //Thread thread = new Thread(new Runnable() {
-          //  public void run() {
-                // fill out the array
-                for (int i = 0; i < numSamples; ++i) {
-                    sample[i] = Math.sin(2 * Math.PI * i / (sampleRate / freqOfTone));
-                }
-
-                // convert to 16 bit pcm sound array
-                // assumes the sample buffer is normalised.
-                int idx = 0;
-                for (final double dVal : sample) {
-                    // scale to maximum amplitude
-                    final short val = (short) ((dVal * 32767));
-                    // in 16 bit wav PCM, first byte is the low order byte
-                    generatedSnd[idx++] = (byte) (val & 0x00ff);
-                    generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
-                }
-            //}
-        //});
+        // Generate a sine wave on wave file format (byte)
+        // Fill out the array
+        for (int i = 0; i < numSamples; ++i) {
+            sample[i] = Math.sin(2 * Math.PI * i / (sampleRate / freqOfTone));
+        }
     }
 
+    void genSweepTone(double f1, double f2){
+        if (f1<1)
+            f1 = 1.;        // Avoid 0Hz
+        else if (f2>f1)
+            Log.i(TAG, "Generating Swept tone signal...");
+        else{
+            Log.e(TAG,"Error defining f1 and f2, f2 must be greater than f1");
+        }
+        // convert to log2
+        double b1 = Math.log10(f1)/Math.log10(2.);
+        double b2 = Math.log10(f2)/Math.log10(2.);
+        // define log2 range
+        double rb = b2-b1;
+        // defining step by time resolution
+        double step = rb/numSamples;
+        double nf = b1 ;   // new frequency
+        for (int i = 0; i < numSamples; i++) {
+            double time = i*1.0 / sampleRate;
+            double f = Math.pow(2.,nf);
+            sample[i] = (amplitude*Math.sin(twoPi* f * time));
+            nf = nf +step;
+        }
+    }
+
+    void byteConversion(){
+        // Convert to 16 bit pcm sound array
+        // Assumes the sample buffer is normalised.
+        int idx = 0;
+        for (final double dVal : sample) {
+            // Scaling to maximum amplitude
+            final short val = (short) ((dVal * 32767));
+            // in 16 bit wav PCM, first byte is the low order byte
+            generatedSnd[idx++] = (byte) (val & 0x00ff);
+            generatedSnd[idx++] = (byte) ((val & 0xff00) >>> 8);
+        }
+    }
+
+    void genSignals(int pos){
+        switch(pos){
+            case 0:{
+                genTone();
+                break;
+            }
+            case 1:{
+                genSweepTone(200, 20000);
+                break;
+            }
+            case 2:{
+                //genPinkNoise
+                break;
+            }
+            case 3:{
+                //genMLS
+                break;
+            }
+        }
+    }
     void playSound(){
         mAudioTrack = new AudioTrack(mAudioManager.STREAM_MUSIC,
                 sampleRate, AudioFormat.CHANNEL_OUT_MONO,
