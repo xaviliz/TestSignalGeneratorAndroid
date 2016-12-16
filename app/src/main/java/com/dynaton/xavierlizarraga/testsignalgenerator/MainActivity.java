@@ -11,8 +11,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioFormat;
 import android.media.AudioManager;
+import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.media.SoundPool;
 import android.media.SoundPool.OnLoadCompleteListener;
 import android.os.Environment;
@@ -35,6 +37,7 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -64,6 +67,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     double twoPi = 2.*Math.PI;
     int f1 = 20;
     int f2 = 20000;
+
+    private static final int RECORDER_BPP = 16;
+    private static final String AUDIO_RECORDER_FOLDER = "AudioRecorder";
+    private static final String AUDIO_RECORDER_TEMP_FILE = "record_temp.raw";
+    private static final int RECORDER_CHANNELS = AudioFormat.CHANNEL_IN_MONO;
+    private static final int RECORDER_AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    short[] audioData;
+
+    private AudioRecord recorder = null;
+    private int bufferSize = 0;
+    private Thread recordingThread = null;
+    private boolean isRecording = false;
+    int[] bufferData;
+    int bytesRecorded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,9 +136,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 // Start/stop recording
                 //onRecordPressed(isChecked);
                 // TODO - Create onRecordPressed to play the testing signal selected
-                if(isChecked)
+                if(isChecked) {
                     Toast.makeText(MainActivity.this, "Recording sound!!! =)",
-                        Toast.LENGTH_SHORT).show();
+                            Toast.LENGTH_SHORT).show();
+                    startRecording();
+                } else {
+                    stopRecording();
+                }
             }
         });
         mRecordButton.setEnabled(false);
@@ -156,6 +177,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // Instantiate Broadcast Receiver to check if headphones output is plugged
         myReceiver = new MusicIntentReceiver();
 
+        // Recorder settings
+        bufferSize = AudioRecord.getMinBufferSize
+                (sampleRate,RECORDER_CHANNELS,RECORDER_AUDIO_ENCODING)*3;
+
+        audioData = new short [bufferSize]; //short array that pcm data is put into.
         // TODO - Add circular progress bar - check Threading AsyncTask in examples
         /* Progress Bar while signals are sinthesized
         ProgressBar mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
@@ -431,7 +457,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private String getFilename(){
         String filepath = Environment.getExternalStorageDirectory().getPath();
-        File file = new File(filepath,"AudioRecorder");
+        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
 
         if (!file.exists()) {
             file.mkdirs();
@@ -441,12 +467,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 "synth_test.wav");
     }
 
+    private String getFilename2(){
+        String filepath = Environment.getExternalStorageDirectory().getPath();
+        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+
+        return (file.getAbsolutePath() + "/" + System.currentTimeMillis() + ".wav");
+    }
+
     private void writeSynthesizedDataToFile() {
         int bufferSize = 4096;
         byte data[] = new byte[bufferSize];
         mFileName = getFilename();        //"synth_test.wav";//getTempFilename();
         int channels = 1;
-        long byteRate = 16 * sampleRate * channels/8;
+        long byteRate = RECORDER_BPP * sampleRate * channels/8;
         FileOutputStream os = null;
 
         try {
@@ -574,6 +611,139 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override public void onPause() {
         unregisterReceiver(myReceiver);
         super.onPause();
+    }
+
+    private String getTempFilename() {
+        String filepath = Environment.getExternalStorageDirectory().getPath();
+        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+
+        File tempFile = new File(filepath,AUDIO_RECORDER_TEMP_FILE);
+
+        if (tempFile.exists())
+            tempFile.delete();
+
+        return (file.getAbsolutePath() + "/" + AUDIO_RECORDER_TEMP_FILE);
+    }
+
+
+    private void writeAudioDataToFile() {
+        byte data[] = new byte[bufferSize];
+        String filename = getTempFilename();
+        FileOutputStream os = null;
+
+        try {
+            os = new FileOutputStream(filename);
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        int read = 0;
+        if (null != os) {
+            while(isRecording) {
+                read = recorder.read(data, 0, bufferSize);
+                if (read > 0){
+                }
+
+                if (AudioRecord.ERROR_INVALID_OPERATION != read) {
+                    try {
+                        os.write(data);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            try {
+                os.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void deleteTempFile() {
+        File file = new File(getTempFilename());
+        file.delete();
+    }
+
+    private void copyWaveFile(String inFilename,String outFilename){
+        FileInputStream in = null;
+        FileOutputStream out = null;
+        long totalAudioLen = 0;
+        long totalDataLen = totalAudioLen + 36;
+        long longSampleRate = sampleRate;
+        int channels = 2;
+        long byteRate = RECORDER_BPP * sampleRate * channels/8;
+
+        byte[] data = new byte[bufferSize];
+
+        try {
+            in = new FileInputStream(inFilename);
+            out = new FileOutputStream(outFilename);
+            totalAudioLen = in.getChannel().size();
+            totalDataLen = totalAudioLen + 36;
+
+            Log.i(TAG, "File size: " + totalDataLen);
+
+            WriteWaveFileHeader(out, totalAudioLen, totalDataLen,
+                    longSampleRate, channels, byteRate);
+
+            while(in.read(data) != -1) {
+                out.write(data);
+            }
+
+            in.close();
+            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Start recording wave file
+    private void startRecording() {
+        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                RECORDER_CHANNELS,
+                RECORDER_AUDIO_ENCODING,
+                bufferSize);
+        int i = recorder.getState();
+        if (i==1)
+            recorder.startRecording();
+
+        isRecording = true;
+
+        recordingThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                writeAudioDataToFile();
+            }
+        }, "AudioRecorder Thread");
+
+        recordingThread.start();
+    }
+    // Stop recording wave file
+    private void stopRecording() {
+        if (null != recorder){
+            isRecording = false;
+
+            int i = recorder.getState();
+            if (i==1)
+                recorder.stop();
+            recorder.release();
+
+            recorder = null;
+            recordingThread = null;
+        }
+
+        copyWaveFile(getTempFilename(),getFilename2());
+        deleteTempFile();
     }
 }
 
