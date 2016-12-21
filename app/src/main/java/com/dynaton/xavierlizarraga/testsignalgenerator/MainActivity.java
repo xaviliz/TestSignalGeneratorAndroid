@@ -28,6 +28,7 @@ import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
@@ -41,6 +42,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import ddf.minim.analysis.*;
+import ddf.minim.*;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
@@ -53,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private MediaPlayer mPlayer;
     private AudioManager mAudioManager;
     private ToggleButton mPlayButton, mRecordButton;
+    private Button mProcessButton;
     private MusicIntentReceiver myReceiver;
     private ProgressBar mProgressBar;
     private final int duration = 20; // seconds
@@ -61,12 +65,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private final double sample[] = new double[numSamples];
     private final double freqOfTone = 1000; // hz
     private final byte generatedSnd[] = new byte[2 * numSamples];
-    //private final byte data[] = new byte[2 * numSamples];
     private AudioTrack mAudioTrack;
     double amplitude = 1.0;
-    double twoPi = 2.*Math.PI;
+    double twoPi = 2. * Math.PI;
     int f1 = 20;
     int f2 = 20000;
+    int BytesPerElement = 2; // 2 bytes in 16bit format
+    Minim minim;
+
+    FFT fft;
 
     private static final int RECORDER_BPP = 16;
     private static final String AUDIO_RECORDER_FOLDER = "AudioRecorder";
@@ -103,18 +110,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 //mRecordButton.setEnabled(!isChecked);
                 Log.i(TAG, "Play button pressed");
                 // Start/stop playback
-                //onPlayPressed(isChecked);
-                // TODO - Edit onPlayPressed to play the testing signal selected
-                if(isChecked) {
-                    //playSound();
+                if (isChecked) {
                     startPlaying();
                     Toast.makeText(MainActivity.this, "Playing sound!!! =)",
                             Toast.LENGTH_SHORT).show();
-                }
-                else{
+                } else {
                     stopPlaying();
-                    /*mAudioTrack.stop();
-                    mAudioTrack.release();*/
                 }
             }
         });
@@ -136,7 +137,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 // Start/stop recording
                 //onRecordPressed(isChecked);
                 // TODO - Create onRecordPressed to play the testing signal selected
-                if(isChecked) {
+                if (isChecked) {
                     Toast.makeText(MainActivity.this, "Recording sound!!! =)",
                             Toast.LENGTH_SHORT).show();
                     startRecording();
@@ -179,9 +180,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         // Recorder settings
         bufferSize = AudioRecord.getMinBufferSize
-                (sampleRate,RECORDER_CHANNELS,RECORDER_AUDIO_ENCODING)*3;
+                (sampleRate, RECORDER_CHANNELS, RECORDER_AUDIO_ENCODING) * 3;
 
-        audioData = new short [bufferSize]; //short array that pcm data is put into.
+        audioData = new short[bufferSize]; //short array that pcm data is put into.
+
+        // Create process button to call when testing signals are recorded. IT should be incative if nothing is recorded.
+        mProcessButton = (Button) findViewById(R.id.process_button);
+
+        mProcessButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Perform action on click
+                Intent intent= new Intent(MainActivity.this,DSPActivity.class);
+                startActivity(intent);
+            }
+        });
+        mProcessButton.setEnabled(false);
         // TODO - Add circular progress bar - check Threading AsyncTask in examples
         /* Progress Bar while signals are sinthesized
         ProgressBar mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
@@ -266,7 +279,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     // Playback audio using MediaPlayer
     private void startPlaying() {
-        if(mFileName != null) {
+        if (mFileName != null) {
             mPlayer = new MediaPlayer();
             try {
                 mPlayer.setDataSource(mFileName);
@@ -278,6 +291,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         } else {
             Log.e(TAG, "First generate a testing signal");
         }
+        /*
+        recordingThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                writeAudioDataToFile();
+            }
+        }, "AudioRecorder Thread");
+
+        recordingThread.start();*/
     }
 
     // Stop playback. Release resources
@@ -285,10 +307,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if (null != mPlayer) {
             if (mPlayer.isPlaying())
                 mPlayer.stop();
+            mPlayer.reset();
             mPlayer.release();
             mPlayer = null;
         }
     }
+
     // Listen for Audio Focus changes
     // To avoid every music app playing at the same time, Android uses audio focus to moderate audio playback.
     AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
@@ -303,8 +327,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
-    public void onItemSelected(AdapterView<?> parent, View view,
-                               int pos, long id) {
+    public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
         // Generating Testing signals depending on spinner choice
         genSignals(pos);
         byteConversion();
@@ -317,7 +340,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mPlayButton.setEnabled(false);
     }
 
-    @Override protected void onResume() {
+    @Override
+    protected void onResume() {
         IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         registerReceiver(myReceiver, filter);
         super.onResume();
@@ -337,7 +361,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         thread.start();
     }*/
 
-    void genTone(){
+    void genTone() {
         Log.i(TAG, "genTone is called");
         // Generate a sine wave on wave file format (byte)
         // Fill out the array
@@ -346,65 +370,65 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    void genSweepTone(double f1, double f2){
-        if (f1<1)
+    void genSweepTone(double f1, double f2) {
+        if (f1 < 1)
             f1 = 1.;        // Avoid 0Hz
-        else if (f2>f1)
+        else if (f2 > f1)
             Log.i(TAG, "Generating Swept tone signal...");
-        else{
-            Log.e(TAG,"Error defining f1 and f2, f2 must be greater than f1");
+        else {
+            Log.e(TAG, "Error defining f1 and f2, f2 must be greater than f1");
         }
         // convert to log2
-        double b1 = Math.log10(f1)/Math.log10(2.);
-        double b2 = Math.log10(f2)/Math.log10(2.);
+        double b1 = Math.log10(f1) / Math.log10(2.);
+        double b2 = Math.log10(f2) / Math.log10(2.);
         // define log2 range
-        double rb = b2-b1;
+        double rb = b2 - b1;
         // defining step by time resolution
-        double step = rb/numSamples;
-        double nf = b1 ;   // new frequency
+        double step = rb / numSamples;
+        double nf = b1;   // new frequency
         for (int i = 0; i < numSamples; i++) {
-            double time = i*1.0 / sampleRate;
-            double f = Math.pow(2.,nf);
-            sample[i] = (amplitude*Math.sin(twoPi* f * time));
-            nf = nf +step;
+            double time = i * 1.0 / sampleRate;
+            double f = Math.pow(2., nf);
+            sample[i] = (amplitude * Math.sin(twoPi * f * time));
+            nf = nf + step;
         }
     }
 
     void generateWhiteNoise() {
-        Log.i(TAG,"Generating white noise...");
+        Log.i(TAG, "Generating white noise...");
         // Generate signal
         double Max = amplitude;
         double Min = -amplitude;
         for (int i = 0; i < numSamples; i++) {
-            sample[i] =(Math.random()*(Max-Min))-1.;
+            sample[i] = (Math.random() * (Max - Min)) - 1.;
         }
     }
 
-    void generateMLS(int N){
+    void generateMLS(int N) {
         Log.i(TAG, "Generating MLS signal...");
         // Initialize abuff array to ones
         // Generate pseudo random signal
-        int nsamp = (int)Math.pow(2,N);
-        int taps=4, tap1=1, tap2=2, tap3=4, tap4=15;
-        if (N!=16){
+        int nsamp = (int) Math.pow(2, N);
+        int taps = 4, tap1 = 1, tap2 = 2, tap3 = 4, tap4 = 15;
+        if (N != 16) {
             Log.e(TAG, "At this moment MLS signal is only defined for 16 bits, soon other tap values will be included.");
         }
         int[] abuff = new int[N];
         // fill with ones
-        for (int i = 0; i<abuff.length;i++){
+        for (int i = 0; i < abuff.length; i++) {
             abuff[i] = 1;
         }
-        for(int i = nsamp; i>1; i--){
+        for (int i = nsamp; i > 1; i--) {
             // feedback bit
             int xorbit = abuff[tap1] ^ abuff[tap2];
             // second logic level
-            if (taps==4){
+            if (taps == 4) {
                 int xorbit2 = abuff[tap3] ^ abuff[tap4]; //4 taps = 3 xor gates & 2 levels of logic
                 xorbit = xorbit ^ xorbit2;        //second logic level
             }
             // Circular buffer
-            for (int j= N-1; j>0; j--){
-                int temp = abuff[j-1];
+            for (int j = N - 1; j > 0; j--) {
+                int temp = abuff[j - 1];
                 abuff[j] = temp;
             }
             abuff[0] = xorbit;
@@ -413,7 +437,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    void byteConversion(){
+    void byteConversion() {
         // Convert to 16 bit pcm sound array
         // Assumes the sample buffer is normalised.
         int idx = 0;
@@ -426,27 +450,28 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    void genSignals(int pos){
-        switch(pos){
-            case 0:{
+    void genSignals(int pos) {
+        switch (pos) {
+            case 0: {
                 genTone();
                 break;
             }
-            case 1:{
+            case 1: {
                 genSweepTone(f1, f2);
                 break;
             }
-            case 2:{
+            case 2: {
                 generateWhiteNoise();
                 break;
             }
-            case 3:{
+            case 3: {
                 generateMLS(16);
                 break;
             }
         }
     }
-    void playSound(){
+
+    void playSound() {
         mAudioTrack = new AudioTrack(mAudioManager.STREAM_MUSIC,
                 sampleRate, AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT, generatedSnd.length,
@@ -455,9 +480,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mAudioTrack.play();
     }
 
-    private String getFilename(){
+    private String getFilename() {
         String filepath = Environment.getExternalStorageDirectory().getPath();
-        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+        File file = new File(filepath, AUDIO_RECORDER_FOLDER);
 
         if (!file.exists()) {
             file.mkdirs();
@@ -467,9 +492,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 "synth_test.wav");
     }
 
-    private String getFilename2(){
+    private String getFilename2() {
         String filepath = Environment.getExternalStorageDirectory().getPath();
-        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+        File file = new File(filepath, AUDIO_RECORDER_FOLDER);
 
         if (!file.exists()) {
             file.mkdirs();
@@ -483,7 +508,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         byte data[] = new byte[bufferSize];
         mFileName = getFilename();        //"synth_test.wav";//getTempFilename();
         int channels = 1;
-        long byteRate = RECORDER_BPP * sampleRate * channels/8;
+        long byteRate = RECORDER_BPP * sampleRate * channels / 8;
         FileOutputStream os = null;
 
         try {
@@ -529,8 +554,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private void WriteWaveFileHeader(
             FileOutputStream out, long totalAudioLen,
             long totalDataLen, long longSampleRate, int channels,
-            long byteRate) throws IOException
-    {
+            long byteRate) throws IOException {
         byte[] header = new byte[44];
 
         header[0] = 'R';  // RIFF/WAVE header
@@ -583,7 +607,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     // Class necessary to know when line out is unplugged
     private class MusicIntentReceiver extends BroadcastReceiver {
-        @Override public void onReceive(Context context, Intent intent) {
+        @Override
+        public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
                 int state = intent.getIntExtra("state", -1);
                 switch (state) {
@@ -598,8 +623,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         Log.d(TAG, "Headset is plugged");
                         mPlayButton.setEnabled(true);
                         mRecordButton.setEnabled(true);
-                        //Toast.makeText(MainActivity.this, "Headset is plugged",
-                        //        Toast.LENGTH_LONG).show();
                         break;
                     default:
                         Log.d(TAG, "I have no idea what the headset state is");
@@ -608,20 +631,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     }
 
-    @Override public void onPause() {
+    @Override
+    public void onPause() {
         unregisterReceiver(myReceiver);
         super.onPause();
     }
 
     private String getTempFilename() {
         String filepath = Environment.getExternalStorageDirectory().getPath();
-        File file = new File(filepath,AUDIO_RECORDER_FOLDER);
+        File file = new File(filepath, AUDIO_RECORDER_FOLDER);
 
         if (!file.exists()) {
             file.mkdirs();
         }
 
-        File tempFile = new File(filepath,AUDIO_RECORDER_TEMP_FILE);
+        File tempFile = new File(filepath, AUDIO_RECORDER_TEMP_FILE);
 
         if (tempFile.exists())
             tempFile.delete();
@@ -631,7 +655,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
     private void writeAudioDataToFile() {
-        byte data[] = new byte[bufferSize];
+        byte data2[] = new byte[bufferSize*BytesPerElement];
         String filename = getTempFilename();
         FileOutputStream os = null;
 
@@ -644,14 +668,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         int read = 0;
         if (null != os) {
-            while(isRecording) {
-                read = recorder.read(data, 0, bufferSize);
-                if (read > 0){
+            while (isRecording) {
+                read = recorder.read(data2, 0, bufferSize*BytesPerElement);
+                if (read > 0) {
                 }
 
                 if (AudioRecord.ERROR_INVALID_OPERATION != read) {
                     try {
-                        os.write(data);
+                        os.write(data2,0,bufferSize*BytesPerElement);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -671,16 +695,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         file.delete();
     }
 
-    private void copyWaveFile(String inFilename,String outFilename){
+    private void copyWaveFile(String inFilename, String outFilename) {
         FileInputStream in = null;
         FileOutputStream out = null;
         long totalAudioLen = 0;
         long totalDataLen = totalAudioLen + 36;
         long longSampleRate = sampleRate;
-        int channels = 2;
-        long byteRate = RECORDER_BPP * sampleRate * channels/8;
+        int channels = 1;
+        long byteRate = RECORDER_BPP * sampleRate * channels / 8;
 
-        byte[] data = new byte[bufferSize];
+        byte[] data = new byte[bufferSize*BytesPerElement];
 
         try {
             in = new FileInputStream(inFilename);
@@ -693,7 +717,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             WriteWaveFileHeader(out, totalAudioLen, totalDataLen,
                     longSampleRate, channels, byteRate);
 
-            while(in.read(data) != -1) {
+            while (in.read(data) != -1) {
                 out.write(data);
             }
 
@@ -708,13 +732,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     // Start recording wave file
     private void startRecording() {
-        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,
+        recorder = new AudioRecord(MediaRecorder.AudioSource.CAMCORDER, // CAMCORDER is the best option bec MIC change to a mixing with line output
                 sampleRate,
                 RECORDER_CHANNELS,
                 RECORDER_AUDIO_ENCODING,
-                bufferSize);
+                bufferSize*BytesPerElement);
         int i = recorder.getState();
-        if (i==1)
+        if (i == 1)
             recorder.startRecording();
 
         isRecording = true;
@@ -728,24 +752,70 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         recordingThread.start();
     }
+
     // Stop recording wave file
     private void stopRecording() {
-        if (null != recorder){
+        if (null != recorder) {
             isRecording = false;
-
             int i = recorder.getState();
-            if (i==1)
+            if (i == 1)
                 recorder.stop();
             recorder.release();
-
             recorder = null;
             recordingThread = null;
         }
 
-        copyWaveFile(getTempFilename(),getFilename2());
+        copyWaveFile(getTempFilename(), getFilename2());
         deleteTempFile();
+        // Remove record.raw - temporal file - every time any file has been recorded
+        try {
+            removeRawFile();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        // makes enable to process button when some audio is recorded
+        mProcessButton.setEnabled(true);
     }
-}
 
+    /* This function is used to remove raw file before to close the application -
+    it works but onDestroy is not always called when app is closed */
+    void removeRawFile() {
+        String filepath = Environment.getExternalStorageDirectory().getPath();
+        File file = new File(filepath, AUDIO_RECORDER_FOLDER);
+        file.delete();
+        if (file.exists()) {
+            try {
+                file.getCanonicalFile().delete();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (file.exists()) {
+                getApplicationContext().deleteFile(file.getName());
+            }
+        }
+    }
+    /* onDestroy doesn't guaranteed that removeRawFile is called
+    * TODO - Look for other strategy */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            removeRawFile();
+            Toast.makeText(this,"onDestroy " ,Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        if (null != recorder) {
+            Log.i("CallRecorder", "RecordService::onDestroy calling recorder.release()");
+            isRecording = false;
+            recorder.release();
+            Toast t = Toast.makeText(getApplicationContext(), "CallRecorder finished recording call", Toast.LENGTH_LONG);
+            t.show();
+        }
+    }
+
+}
 
 // TODO - Add intro Activity to include dynaton icon, use IntroActivity project as example

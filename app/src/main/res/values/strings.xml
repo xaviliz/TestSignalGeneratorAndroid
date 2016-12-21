@@ -2,8 +2,10 @@
     <string name="app_name">Test Signal Generator</string>
     <string name="play_button">Play</string>
     <string name="rec_button">Rec</string>
+    <string name="process_button">Start Processing</string>
     <string name="text_volume">Play sound</string>
     <string name="text_record">Record sound</string>
     <string name="text_selector">Select a kind of signal</string>
     <string name="file">Setting signals</string>
+    <string name="New_activity">New activity</string>
 </resources>
