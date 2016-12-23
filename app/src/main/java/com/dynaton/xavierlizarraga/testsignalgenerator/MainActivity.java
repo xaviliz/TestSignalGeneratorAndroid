@@ -1001,6 +1001,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         File file = new File(filepath, AUDIO_RECORDER_FOLDER);
         file.delete();
         if (file.exists()) {
+            Log.i(TAG, "removeRawFile() file: " + file.getName() + " exists. Trying to remove");
             try {
                 file.getCanonicalFile().delete();
             } catch (IOException e) {
@@ -1008,11 +1009,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
             if (file.exists()) {
                 getApplicationContext().deleteFile(file.getName());
+            } else {
+                Log.w(TAG, file.getName() + " not deleted!");
             }
         }
     }
+
+    /* Maybe onStop could be a solution to removeRawFile()
+    *   However, it is also called when another activity is called (like DSPActivity.java)
+    * */
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "Currently onStop()");
+    }
+
     /* onDestroy doesn't guaranteed that removeRawFile is called
-    * TODO - Look for other strategy */
+        * TODO - Look for other strategy */
     @Override
     protected void onDestroy() {
         super.onDestroy();
