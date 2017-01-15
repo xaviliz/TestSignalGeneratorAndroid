@@ -1,5 +1,6 @@
 package com.dynaton.xavierlizarraga.testsignalgenerator;
 
+import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -9,6 +10,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -17,7 +19,11 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.media.SoundPool;
 import android.media.SoundPool.OnLoadCompleteListener;
+import android.os.Build;
 import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -48,6 +54,8 @@ import ddf.minim.*;
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
     protected static final String TAG = "TestSignalGenerator";
+    private static final int PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 2;
     private String mFileName;
     private int mVolume = 6;
     private final int mVolumeMax = 10;
@@ -110,13 +118,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 //mRecordButton.setEnabled(!isChecked);
                 Log.i(TAG, "Play button pressed");
                 // Start/stop playback
-                if (isChecked) {
-                    startPlaying();
-                    Toast.makeText(MainActivity.this, "Playing sound!!! =)",
-                            Toast.LENGTH_SHORT).show();
+                if (isStoragePermissionGranted()){
+                    if (isChecked) {
+                        startPlaying();
+                        Toast.makeText(MainActivity.this, "Playing sound!!! =)",
+                                Toast.LENGTH_SHORT).show();
+                    } else {
+                        stopPlaying();
+                    }
                 } else {
-                    stopPlaying();
+                    Toast.makeText(MainActivity.this, "Need storage permission to play sound",
+                            Toast.LENGTH_LONG).show();
                 }
+
             }
         });
         mPlayButton.setEnabled(false);
@@ -137,13 +151,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 // Start/stop recording
                 //onRecordPressed(isChecked);
                 // TODO - Create onRecordPressed to play the testing signal selected
-                if (isChecked) {
-                    Toast.makeText(MainActivity.this, "Recording sound!!! =)",
-                            Toast.LENGTH_SHORT).show();
-                    startRecording();
+                if(isMicrophonePermissionGranted()){
+                    if (isChecked) {
+                        Toast.makeText(MainActivity.this, "Recording sound!!! =)",
+                                Toast.LENGTH_SHORT).show();
+                        startRecording();
+                    } else {
+                        stopRecording();
+                    }
                 } else {
-                    stopRecording();
+                    Toast.makeText(MainActivity.this, "Need micrphone permission to record sound",
+                            Toast.LENGTH_LONG).show();
                 }
+
             }
         });
         mRecordButton.setEnabled(false);
@@ -202,6 +222,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         animation.setDuration (5000); //in milliseconds
         animation.setInterpolator (new DecelerateInterpolator());
         animation.start ();*/
+
+        //isStoragePermissionGranted();
     }
 
     @Override
@@ -331,13 +353,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // Generating Testing signals depending on spinner choice
         genSignals(pos);
         byteConversion();
-        writeSynthesizedDataToFile();
-        mPlayButton.setEnabled(true);
+        if(isStoragePermissionGranted()){
+            writeSynthesizedDataToFile();
+            mPlayButton.setEnabled(true);
+        }
     }
 
     public void onNothingSelected(AdapterView<?> parent) {
         // Another interface callback
-        mPlayButton.setEnabled(false);
+        genTone();
+        //mPlayButton.setEnabled(false);
     }
 
     @Override
@@ -653,6 +678,90 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         return (file.getAbsolutePath() + "/" + AUDIO_RECORDER_TEMP_FILE);
     }
 
+    //Checks to see if Storage is granted -- need for sdk >= 23
+    public boolean isStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                Log.v(TAG,"Storage Permission is granted");
+                return true;
+            } else {
+                Log.v(TAG," Storage Permission is revoked");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+            Log.v(TAG,"Storage Permission is granted");
+            return true;
+        }
+    }
+
+    //Checks to see if Microphone is granted -- needed for sdk >= 23
+    public boolean isMicrophonePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                    == PackageManager.PERMISSION_GRANTED) {
+                Log.v(TAG,"Microphone Permission is granted");
+                return true;
+            } else {
+                Log.v(TAG,"Microphone Permission is revoked");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSIONS_REQUEST_RECORD_AUDIO);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+            Log.v(TAG,"Microphone Permission is granted");
+            return true;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        final View coordinateLayout = findViewById(R.id.snackbarlocation);
+        switch (requestCode){
+            case PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE:{
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    // permission was granted
+                } else {
+                    // permission NOT granted
+                    Snackbar snackbar = Snackbar
+                            .make(coordinateLayout, "Storage permission is needed for app to work",
+                                    Snackbar.LENGTH_INDEFINITE)
+                            .setAction("Permissions", new View.OnClickListener(){
+                                @Override
+                                public void onClick(View view){
+                                    isStoragePermissionGranted();
+                                }
+                            });
+                    snackbar.show();
+
+                }
+            }
+
+            case PERMISSIONS_REQUEST_RECORD_AUDIO:{
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    // permission was granted
+                } else {
+                    // permission NOT granted
+                    Snackbar snackbar = Snackbar
+                            .make(coordinateLayout, "Microphone permission is needed for app to work",
+                                    Snackbar.LENGTH_INDEFINITE)
+                            .setAction("Permission", new View.OnClickListener(){
+                                @Override
+                                public void onClick(View view){
+                                    isMicrophonePermissionGranted();
+                                }
+                            });
+                    snackbar.show();
+
+                }
+
+            }
+
+        }
+    }
 
     private void writeAudioDataToFile() {
         byte data2[] = new byte[bufferSize*BytesPerElement];
