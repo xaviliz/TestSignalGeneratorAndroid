@@ -26,7 +26,9 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Layout;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -248,11 +250,31 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     public void setSignals() {
         final AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create(); //Read Update
+        //LayoutInflater inflater = getLayoutInflater();
+        //alertDialog.setView(inflater.inflate(R.layout.dialog_signal_setttings, null));
         alertDialog.setTitle("Setting Signals");
-        alertDialog.setMessage("Here some sliders should be added to control the testing signal generator.");
+        alertDialog.setMessage("Duration of test recording");
         final SeekBar seek = new SeekBar(this);
         seek.setMax(255);
         seek.setKeyProgressIncrement(1);
+        alertDialog.setView(seek);
+
+        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                alertDialog.setMessage("Record time: " + progress + " seconds.");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         alertDialog.setButton("Continue..", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {

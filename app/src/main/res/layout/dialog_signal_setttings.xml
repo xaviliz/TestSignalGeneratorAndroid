@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/durationSeconds"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="kekeke"
+        android:gravity="end"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/setDurationTime"
+        android:layout_toEndOf="@+id/setDurationTime"
+        android:layout_marginLeft="70dp"
+        android:layout_marginStart="70dp"
+        android:layout_marginTop="39dp"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:id="@+id/setDurationTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/dialog_duration_text"
+        android:gravity="start"
+        android:layout_alignBaseline="@+id/durationSeconds"
+        android:layout_alignBottom="@+id/durationSeconds"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:textColor="@android:color/black" />
+
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/textView2"
+        android:textSize="18sp"
+        android:textColor="@android:color/black" />
+
+</RelativeLayout>
