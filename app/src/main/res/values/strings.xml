@@ -10,5 +10,6 @@
     <string name="New_activity">New activity</string>
 
     <!--Dialog strings -->
-    <string name="dialog_duration_text"> Duration time in seconds: </string>
+    <string name="dialog_duration_text">Duration time in seconds: </string>
+    <string name="dialog_title">Settings Signals</string>
 </resources>

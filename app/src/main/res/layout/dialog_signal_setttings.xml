@@ -1,21 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:padding="5dp"
+    android:id="@+id/dialog_view">
 
     <TextView
-        android:id="@+id/durationSeconds"
+        android:id="@+id/duration_Seconds"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="kekeke"
+        android:text=""
         android:gravity="end"
-        android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/setDurationTime"
-        android:layout_toEndOf="@+id/setDurationTime"
-        android:layout_marginLeft="70dp"
-        android:layout_marginStart="70dp"
-        android:layout_marginTop="39dp"
-        android:textColor="@android:color/black" />
+        android:layout_marginTop="20dp"
+        android:textColor="@android:color/black"
+        android:layout_below="@+id/dialog_title"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="22dp"
+        android:layout_marginEnd="22dp" />
 
     <TextView
         android:id="@+id/setDurationTime"
@@ -23,21 +25,64 @@
         android:layout_height="wrap_content"
         android:text="@string/dialog_duration_text"
         android:gravity="start"
-        android:layout_alignBaseline="@+id/durationSeconds"
-        android:layout_alignBottom="@+id/durationSeconds"
+        android:textColor="@android:color/black"
+        android:layout_marginLeft="18dp"
+        android:layout_marginStart="18dp"
+        android:layout_above="@+id/seekBar"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:textColor="@android:color/black" />
+        android:layout_alignParentStart="true" />
 
     <TextView
-        android:text="TextView"
+        android:text="@string/dialog_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:id="@+id/dialog_title"
+        android:textSize="20sp"
+        android:textColor="@android:color/black"
         android:layout_alignParentTop="true"
+        android:layout_alignLeft="@id/setDurationTime"
+        android:layout_alignStart="@id/setDurationTime"
+        android:layout_marginTop="10dp"
+        android:textStyle="normal|bold" />
+
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:id="@+id/seekBar"
+        android:layout_below="@id/duration_Seconds"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:id="@+id/textView2"
-        android:textSize="18sp"
-        android:textColor="@android:color/black" />
+        android:max="100"
+        android:progress="30"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/linearLayoutDialogBtns"
+        android:layout_below="@+id/seekBar"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="31dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:text="@android:string/cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnCancel"
+            android:layout_weight="1"
+            style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
+            />
+
+        <Button
+            android:text="@android:string/ok"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnOk"
+            android:layout_weight="1"
+            style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
+            />
+    </LinearLayout>
 
 </RelativeLayout>
