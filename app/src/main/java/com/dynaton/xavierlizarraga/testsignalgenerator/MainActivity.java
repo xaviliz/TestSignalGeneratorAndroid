@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -21,16 +22,20 @@ import android.media.SoundPool;
 import android.media.SoundPool.OnLoadCompleteListener;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Layout;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -38,6 +43,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -70,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private final int duration = 20; // seconds
     private final int sampleRate = 44100;
     private final int numSamples = duration * sampleRate;
+    private int recordTimeInMillis;
     private final double sample[] = new double[numSamples];
     private final double freqOfTone = 1000; // hz
     private final byte generatedSnd[] = new byte[2 * numSamples];
@@ -96,6 +103,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private boolean isRecording = false;
     int[] bufferData;
     int bytesRecorded;
+
+    private Handler handler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -247,20 +256,76 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     public void setSignals() {
-        final AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create(); //Read Update
-        alertDialog.setTitle("Setting Signals");
-        alertDialog.setMessage("Here some sliders should be added to control the testing signal generator.");
-        final SeekBar seek = new SeekBar(this);
-        seek.setMax(255);
-        seek.setKeyProgressIncrement(1);
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View layout = inflater.inflate(R.layout.dialog_signal_setttings, (ViewGroup) findViewById(R.id.dialog_view));
+        final TextView textViewDurationSeconds = (TextView) layout.findViewById(R.id.duration_Seconds);
 
-        alertDialog.setButton("Continue..", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                // here you can add functions
+        final SeekBar sb = (SeekBar) layout.findViewById(R.id.seekBar);
+        Button btnCancel = (Button) layout.findViewById(R.id.btnCancel);
+        Button btnOk = (Button) layout.findViewById(R.id.btnOk);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this).setView(layout);
+
+        final AlertDialog alertDialog = builder
+                .setCancelable(false)
+                .create();
+
+        final SharedPreferences sharedPreferences = getSharedPreferences("timePreference", Context.MODE_PRIVATE);
+        int durationTime = sharedPreferences.getInt("durationTime", 30);
+        sb.setProgress(durationTime);
+        textViewDurationSeconds.setText(String.valueOf(sb.getProgress()));
+
+        sb.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+            int mProgress;
+            int min = 20; //minimum duration
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mProgress = progress;
+
+                if (progress < min){
+                    progress = min;
+                }
+                try {
+                    textViewDurationSeconds.setText(String.valueOf(progress));
+                } catch (NullPointerException e){
+                    Log.e(TAG, e.toString());
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                if (mProgress < min){
+                    sb.setProgress(min);
+                }
             }
         });
         alertDialog.show();
+
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                alertDialog.dismiss();
+            }
+        });
+
+        btnOk.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putInt("durationTime", sb.getProgress());
+                editor.apply();
+                Log.d(TAG, "Duration time saved in sec: " + sb.getProgress());
+                alertDialog.dismiss();
+            }
+        });
     }
+
     /*
     // Basic approach to generate a sinewave
     private void playSound(double frequency, int duration) {
@@ -659,6 +724,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onPause() {
         unregisterReceiver(myReceiver);
+        handler.removeCallbacks(timeRunnable);
         super.onPause();
     }
 
@@ -860,7 +926,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }, "AudioRecorder Thread");
 
         recordingThread.start();
+
+
+        SharedPreferences sharedPreferences = getSharedPreferences("timePreference",Context.MODE_PRIVATE);
+        int mDurationTime = sharedPreferences.getInt("durationTime", 30);
+        recordTimeInMillis = mDurationTime*1000; //to get millis
+
+        //TODO: handle event on onPause to realese the handler...
+        handler.postDelayed(timeRunnable,recordTimeInMillis);
     }
+
+    private Runnable timeRunnable = new Runnable(){
+        @Override
+        public void run() {
+            Log.i(TAG, "Handler ran after " + recordTimeInMillis + " milliseconds");
+            stopRecording();
+        }
+    };
 
     // Stop recording wave file
     private void stopRecording() {

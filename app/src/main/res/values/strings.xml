@@ -8,4 +8,8 @@
     <string name="text_selector">Select a kind of signal</string>
     <string name="file">Setting signals</string>
     <string name="New_activity">New activity</string>
+
+    <!--Dialog strings -->
+    <string name="dialog_duration_text">Duration time in seconds: </string>
+    <string name="dialog_title">Settings Signals</string>
 </resources>
