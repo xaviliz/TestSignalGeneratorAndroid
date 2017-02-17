@@ -28,7 +28,7 @@
         android:textColor="@android:color/black"
         android:layout_marginLeft="18dp"
         android:layout_marginStart="18dp"
-        android:layout_above="@+id/seekBar"
+        android:layout_above="@+id/seekBarDurationTime"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
 
@@ -49,21 +49,58 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:id="@+id/seekBar"
+        android:paddingBottom="7dp"
+        android:id="@+id/seekBarDurationTime"
         android:layout_below="@id/duration_Seconds"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:max="100"
         android:progress="30"/>
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/tvMicGain"
+        android:text="@string/mic_gain_text"
+        android:gravity="start"
+        android:textColor="@android:color/black"
+        android:layout_marginLeft="18dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="5dp"
+        android:layout_below="@+id/seekBarDurationTime"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:id="@+id/mic_gain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:gravity="end"
+        android:textColor="@android:color/black"
+        android:layout_above="@+id/seekBarMicGain"
+        android:layout_toLeftOf="@+id/duration_Seconds"
+        android:layout_toStartOf="@+id/duration_Seconds" />
+
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/seekBarMicGain"
+        android:layout_below="@id/tvMicGain"
+        android:layout_marginTop="10dp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:max="112"
+        android:progress="80"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/linearLayoutDialogBtns"
-        android:layout_below="@+id/seekBar"
+        android:layout_below="@+id/seekBarMicGain"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_marginTop="31dp"
+        android:layout_marginTop="20dp"
         android:orientation="horizontal">
 
         <Button

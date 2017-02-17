@@ -1,13 +1,9 @@
 package com.dynaton.xavierlizarraga.testsignalgenerator;
 
 import android.Manifest;
-import android.animation.ObjectAnimator;
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -18,8 +14,6 @@ import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
-import android.media.SoundPool;
-import android.media.SoundPool.OnLoadCompleteListener;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -28,7 +22,6 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Layout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -36,7 +29,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -259,8 +251,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View layout = inflater.inflate(R.layout.dialog_signal_setttings, (ViewGroup) findViewById(R.id.dialog_view));
         final TextView textViewDurationSeconds = (TextView) layout.findViewById(R.id.duration_Seconds);
+        final TextView textViewMicGain = (TextView) layout.findViewById(R.id.mic_gain);
 
-        final SeekBar sb = (SeekBar) layout.findViewById(R.id.seekBar);
+        final SeekBar sbDurationTime = (SeekBar) layout.findViewById(R.id.seekBarDurationTime);
+        final SeekBar sbMicGain = (SeekBar) layout.findViewById(R.id.seekBarMicGain);
         Button btnCancel = (Button) layout.findViewById(R.id.btnCancel);
         Button btnOk = (Button) layout.findViewById(R.id.btnOk);
 
@@ -272,10 +266,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         final SharedPreferences sharedPreferences = getSharedPreferences("timePreference", Context.MODE_PRIVATE);
         int durationTime = sharedPreferences.getInt("durationTime", 30);
-        sb.setProgress(durationTime);
-        textViewDurationSeconds.setText(String.valueOf(sb.getProgress()));
+        int micGain = sharedPreferences.getInt("micGain", -80);
+        sbDurationTime.setProgress(durationTime);
+        sbMicGain.setProgress(micGain);
+        //sbMicGain.setProgress(80); //TODO needs an extra look
+        textViewDurationSeconds.setText(String.valueOf(sbDurationTime.getProgress()));
+        textViewMicGain.setText(String.valueOf(sbMicGain.getProgress()));
 
-        sb.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+        sbDurationTime.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
             int mProgress;
             int min = 20; //minimum duration
 
@@ -301,10 +299,36 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 if (mProgress < min){
-                    sb.setProgress(min);
+                    sbDurationTime.setProgress(min);
                 }
             }
         });
+
+        sbMicGain.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+            int mProgress;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                try {
+                    mProgress = progress - 100;
+                    textViewMicGain.setText(String.valueOf(mProgress));
+                } catch (NullPointerException e){
+                    Log.e(TAG, e.toString());
+                }
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
         alertDialog.show();
 
         btnCancel.setOnClickListener(new View.OnClickListener() {
@@ -318,9 +342,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             @Override
             public void onClick(View v) {
                 SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putInt("durationTime", sb.getProgress());
+                editor.putInt("durationTime", sbDurationTime.getProgress());
+                editor.putInt("micGain", sbMicGain.getProgress()-100);
                 editor.apply();
-                Log.d(TAG, "Duration time saved in sec: " + sb.getProgress());
+                Log.d(TAG, "Duration time saved in sec: " + sbDurationTime.getProgress());
                 alertDialog.dismiss();
             }
         });
