@@ -12,5 +12,5 @@
     <!--Dialog strings -->
     <string name="dialog_duration_text">Duration time in seconds: </string>
     <string name="dialog_title">Settings Signals</string>
-    <string name="mic_gain_text">Microphone gain: </string>
+    <string name="mic_gain_text">Microphone gain in dB: </string>
 </resources>

@@ -268,10 +268,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         int durationTime = sharedPreferences.getInt("durationTime", 30);
         int micGain = sharedPreferences.getInt("micGain", -80);
         sbDurationTime.setProgress(durationTime);
-        sbMicGain.setProgress(micGain);
+        sbMicGain.setProgress(micGain+100);
         //sbMicGain.setProgress(80); //TODO needs an extra look
         textViewDurationSeconds.setText(String.valueOf(sbDurationTime.getProgress()));
-        textViewMicGain.setText(String.valueOf(sbMicGain.getProgress()));
+        textViewMicGain.setText(String.valueOf(sbMicGain.getProgress()-100));
 
         sbDurationTime.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
             int mProgress;

@@ -6,20 +6,6 @@
     android:id="@+id/dialog_view">
 
     <TextView
-        android:id="@+id/duration_Seconds"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:gravity="end"
-        android:layout_marginTop="20dp"
-        android:textColor="@android:color/black"
-        android:layout_below="@+id/dialog_title"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginRight="22dp"
-        android:layout_marginEnd="22dp" />
-
-    <TextView
         android:id="@+id/setDurationTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -51,7 +37,7 @@
         android:layout_marginTop="10dp"
         android:paddingBottom="7dp"
         android:id="@+id/seekBarDurationTime"
-        android:layout_below="@id/duration_Seconds"
+        android:layout_below="@+id/duration_Seconds"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:max="100"
@@ -70,17 +56,6 @@
         android:layout_below="@+id/seekBarDurationTime"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
-
-    <TextView
-        android:id="@+id/mic_gain"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:gravity="end"
-        android:textColor="@android:color/black"
-        android:layout_above="@+id/seekBarMicGain"
-        android:layout_toLeftOf="@+id/duration_Seconds"
-        android:layout_toStartOf="@+id/duration_Seconds" />
 
     <SeekBar
         android:layout_width="match_parent"
@@ -121,5 +96,34 @@
             style="@style/Widget.AppCompat.Button.ButtonBar.AlertDialog"
             />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/duration_Seconds"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:gravity="end"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="20dp"
+        android:layout_below="@+id/dialog_title"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="18dp"
+        android:layout_marginRight="18dp"
+        android:textAlignment="textEnd" />
+
+    <TextView
+        android:id="@+id/mic_gain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:gravity="end"
+        android:textColor="@android:color/black"
+        android:textAlignment="viewEnd"
+        android:layout_above="@+id/seekBarMicGain"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="18dp"
+        android:layout_marginEnd="18dp"/>
 
 </RelativeLayout>
