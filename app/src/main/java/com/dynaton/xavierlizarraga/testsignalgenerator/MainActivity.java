@@ -30,6 +30,8 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -42,6 +44,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 
@@ -88,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private boolean isRecording = false;
     int[] bufferData;
     int bytesRecorded;
+    private static String DATE_FORMAT_STRING = "yyyyMMdd_HHmmss";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -225,12 +231,35 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     public void setSignals() {
+        // Initialize Alert Dialog to display a menu
         final AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create(); //Read Update
         alertDialog.setTitle("Setting Signals");
-        alertDialog.setMessage("Here some sliders should be added to control the testing signal generator.");
-        final SeekBar seek = new SeekBar(this);
-        seek.setMax(255);
-        seek.setKeyProgressIncrement(1);
+        alertDialog.setMessage("Controls for testing signal generator.");
+
+        // All this shluod be done in a new menu as is proposed here:
+        // http://stackoverflow.com/questions/6424032/android-seekbar-in-dialog
+
+        // Seekbars to control testing signals parameters: gain, duration, f1 and f2
+        LinearLayout linear=new LinearLayout(this);
+
+        linear.setOrientation(LinearLayout.VERTICAL);
+        TextView text=new TextView(this);
+        text.setText("Gain");
+        text.setPadding(10, 10, 10, 10);
+
+        final SeekBar gainBar = new SeekBar(this);
+        gainBar.setMax(255);
+        gainBar.setKeyProgressIncrement(1);
+
+        EditText durEditText = new EditText(this);//(EditText)findViewById(R.id.edit_text);
+        durEditText.setText("Duration: ", TextView.BufferType.EDITABLE);
+
+        // Adding View components to Linear Layout
+        linear.addView(text);
+        linear.addView(gainBar);
+        linear.addView(durEditText);
+
+        alertDialog.setView(linear);
 
         alertDialog.setButton("Continue..", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
@@ -495,12 +524,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private String getFilename2() {
         String filepath = Environment.getExternalStorageDirectory().getPath();
         File file = new File(filepath, AUDIO_RECORDER_FOLDER);
-
+        String timeStamp = new SimpleDateFormat(DATE_FORMAT_STRING).format(new Date());
         if (!file.exists()) {
             file.mkdirs();
         }
 
-        return (file.getAbsolutePath() + "/" + System.currentTimeMillis() + ".wav");
+        return (file.getAbsolutePath() + File.separator + timeStamp + ".wav");
     }
 
     private void writeSynthesizedDataToFile() {
