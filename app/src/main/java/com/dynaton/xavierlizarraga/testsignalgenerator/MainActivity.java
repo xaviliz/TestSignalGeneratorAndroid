@@ -1,6 +1,7 @@
 package com.dynaton.xavierlizarraga.testsignalgenerator;
 
 import android.animation.ObjectAnimator;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private Button mProcessButton;
     private MusicIntentReceiver myReceiver;
     private ProgressBar mProgressBar;
+    private ActionBar actionBar;
     private final int duration = 20; // seconds
     private final int sampleRate = 44100;
     private final int numSamples = duration * sampleRate;
@@ -97,10 +99,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // TODO - Add Dialog while signals are generated and added to mAudioManager
 
         // Create play button
         mPlayButton = (ToggleButton) findViewById(R.id.play_button);
@@ -190,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         audioData = new short[bufferSize]; //short array that pcm data is put into.
 
-        // Create process button to call when testing signals are recorded. IT should be incative if nothing is recorded.
+        // Create process button to call when testing signals are recorded. It should be icative if nothing is recorded.
         mProcessButton = (Button) findViewById(R.id.process_button);
 
         mProcessButton.setOnClickListener(new View.OnClickListener() {
@@ -201,13 +202,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         });
         mProcessButton.setEnabled(false);
-        // TODO - Add circular progress bar - check Threading AsyncTask in examples
-        /* Progress Bar while signals are sinthesized
-        ProgressBar mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
-        ObjectAnimator animation = ObjectAnimator.ofInt (mProgressBar, "progress", 0, 500); // see this max value coming back here, we animale towards that value
-        animation.setDuration (5000); //in milliseconds
-        animation.setInterpolator (new DecelerateInterpolator());
-        animation.start ();*/
+
+        actionBar = getActionBar();
+        //actionBar.setIcon(R.drawable.ic_recordings);
     }
 
     @Override
@@ -224,6 +221,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             case R.id.file:
                 //newGame();
                 setSignals();
+                return true;
+            case R.id.action_recording:
+                // TODO - Create recordingMAnager activity and launch activity
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

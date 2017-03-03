@@ -8,4 +8,5 @@
     <string name="text_selector">Select a kind of signal</string>
     <string name="file">Setting signals</string>
     <string name="New_activity">New activity</string>
+    <string name="action_recordings">Recordings Manager</string>
 </resources>
