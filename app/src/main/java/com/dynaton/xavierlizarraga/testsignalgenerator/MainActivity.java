@@ -51,7 +51,7 @@ import java.util.Date;
 import ddf.minim.analysis.*;
 import ddf.minim.*;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
+public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
 
     protected static final String TAG = "TestSignalGenerator";
     private String mFileName;
@@ -156,8 +156,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mRecordButton.setEnabled(false);
 
         // Get reference to the AudioManager
-        mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
-
+        mAudioManager = (AudioManager) getApplicationContext().getSystemService(AUDIO_SERVICE);
         // Request audio focus
         mAudioManager.requestAudioFocus(afChangeListener,
                 AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
@@ -189,9 +188,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         bufferSize = AudioRecord.getMinBufferSize
                 (sampleRate, RECORDER_CHANNELS, RECORDER_AUDIO_ENCODING) * 3;
 
-        audioData = new short[bufferSize]; //short array that pcm data is put into.
+        audioData = new short[bufferSize]; //short array where raw data is stored
 
-        // Create process button to call when testing signals are recorded. It should be icative if nothing is recorded.
+        /* Create process button to call when testing signals are recorded. It should be inactive if nothing is recorded.
         mProcessButton = (Button) findViewById(R.id.process_button);
 
         mProcessButton.setOnClickListener(new View.OnClickListener() {
@@ -202,9 +201,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         });
         mProcessButton.setEnabled(false);
+        */
 
-        actionBar = getActionBar();
-        //actionBar.setIcon(R.drawable.ic_recordings);
     }
 
     @Override
@@ -223,7 +221,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 setSignals();
                 return true;
             case R.id.action_recording:
-                // TODO - Create recordingMAnager activity and launch activity
+                // Launch RecordingsManager activity to manage recordings already done.
+                Intent intent = new Intent(this, RecordingsManager.class);
+                this.startActivity(intent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

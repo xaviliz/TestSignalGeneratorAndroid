@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_recordings_list"
+        android:orderInCategory="100"
+        android:icon="@android:drawable/ic_menu_add"
+        android:showAsAction="ifRoom"
+        android:title="@string/action_recordings" >
+    </item>
+
+    <item
+        android:id="@+id/action_recorder"
+        android:orderInCategory="80"
+        android:icon="@drawable/ic_recordings"
+        android:title="@string/action_recordings"
+        android:showAsAction="ifRoom"/>
+</menu>

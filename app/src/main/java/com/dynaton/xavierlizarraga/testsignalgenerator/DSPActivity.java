@@ -24,6 +24,7 @@ public class DSPActivity extends Activity {
         /* AsyncTask that will handle the background work.
         In the pre and post execute methods, we worry about the ProgressDialog
          */
+        /*
         AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
 
             @Override
@@ -53,12 +54,12 @@ public class DSPActivity extends Activity {
                 if (pd!=null) {
                     pd.dismiss();
                     // Perform action on click - it should call to a display of results
-                    /*Intent intent= new Intent(DSPActivity.this,UICharacResponse.class);
-                    startActivity(intent);*/
+                    //Intent intent= new Intent(DSPActivity.this,UICharacResponse.class);
+                    //startActivity(intent);
                 }
             }
 
         };
-        task.execute((Void[])null);
+        task.execute((Void[])null);*/
     }
 }

@@ -9,4 +9,7 @@
     <string name="file">Setting signals</string>
     <string name="New_activity">New activity</string>
     <string name="action_recordings">Recordings Manager</string>
+    <string name="filemenu1">Launch Analysis</string>
+    <string name="filemenu2">Delete</string>
+    <string name="recdesc">Recording</string>
 </resources>

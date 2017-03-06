@@ -2,7 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/action_recording"
-        android:orderInCategory="100"
+        android:orderInCategory="80"
         android:icon="@drawable/ic_recordings"
         android:title="@string/action_recordings"
         android:showAsAction="ifRoom"/>
