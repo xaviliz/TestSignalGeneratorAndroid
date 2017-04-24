@@ -1018,7 +1018,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onDestroy();
         try {
             removeRawFile();
-            Toast.makeText(this,"onDestroy " ,Toast.LENGTH_LONG).show();
+            //Toast.makeText(this,"onDestroy " ,Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
